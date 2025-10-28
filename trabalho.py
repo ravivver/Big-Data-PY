@@ -5,55 +5,62 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression 
 import time 
 
-produtos_info = {
-    'Produto A (Eletrônico)': {'Categoria': 'Eletrônico', 'Custo': 150.00},
-    'Produto B (Alimento)': {'Categoria': 'Alimento', 'Custo': 5.00},
-    'Produto C (Vestuário)': {'Categoria': 'Vestuário', 'Custo': 30.00},
-    'Produto D (Eletrônico)': {'Categoria': 'Eletrônico', 'Custo': 500.00},
-    'Produto E (Alimento)': {'Categoria': 'Alimento', 'Custo': 1.50},
-    'Produto F (Vestuário)': {'Categoria': 'Vestuário', 'Custo': 80.00},
-}
-lista_produtos = list(produtos_info.keys())
+# =================================================================
+# 0. CARREGAMENTO E TRATAMENTO DOS DADOS REAIS (DADOS COLETADOS)
+# =================================================================
 
-N_TRANSACOES = 5000
-DATA_INICIO = date(2024, 1, 1)
-DATA_FIM = date(2025, 1, 1)
-DIAS = (DATA_FIM - DATA_INICIO).days
+# 1. Carregamento do CSV
+try:
+    # O arquivo está na subpasta 'data/'.
+    df_vendas = pd.read_csv('data/database.csv')
+except FileNotFoundError:
+    print("ERRO: Arquivo 'database.csv' não encontrado. Certifique-se de que está na pasta 'data/' dentro do diretório do script.")
+    exit()
 
-datas = [DATA_INICIO + timedelta(days=np.random.randint(DIAS)) for _ in range(N_TRANSACOES)]
-produtos_vendidos = np.random.choice(lista_produtos, N_TRANSACOES, 
-                                     p=[0.10, 0.30, 0.20, 0.05, 0.25, 0.10])
-quantidades = np.random.randint(1, 10, N_TRANSACOES)
+# === PASSO CRÍTICO: LIMPEZA DE COLUNAS ===
+# Remove espaços em branco (leading/trailing) e padroniza para MAIÚSCULAS
+df_vendas.columns = df_vendas.columns.str.strip().str.upper()
+# ==========================================
 
-custos_unitarios = []
-precos_venda = []
-for i, produto in enumerate(produtos_vendidos):
-    custo = produtos_info[produto]['Custo']
-    if 'Eletrônico' in produto:
-        quantidades[i] = np.random.randint(1, 3) 
-    
-    margem = np.random.uniform(0.1, 0.8)
-    preco = custo * (1 + margem)
-    
-    custos_unitarios.append(custo)
-    precos_venda.append(round(preco * np.random.uniform(0.98, 1.02), 2)) 
+# 2. Tratamento de Datas (Garante o tipo datetime)
+# Convertemos a coluna original 'DATETIME' para o tipo datetime.
+df_vendas['DATETIME'] = pd.to_datetime(df_vendas['DATETIME'])
 
-df_vendas = pd.DataFrame({
-    'ID_Venda': np.arange(1, N_TRANSACOES + 1),
-    'Data_Venda': datas,
-    'Produto': produtos_vendidos, 
-    'Custo_Unitario': custos_unitarios,
-    'Preco_Venda': precos_venda,
-    'Quantidade': quantidades
-})
+# 3. Renomear colunas para o padrão do projeto
+df_vendas.rename(columns={
+    'DATETIME': 'Data_Venda',
+    'MONEY': 'Preco_Venda',
+    'COFFEE_NAME': 'Produto'
+}, inplace=True)
 
-df_vendas['Data_Venda'] = pd.to_datetime(df_vendas['Data_Venda'])
+# 4. Garante que a data seja o índice para futuras análises (resample)
+df_vendas.set_index('Data_Venda', inplace=True)
 
-df_vendas['Categoria'] = df_vendas['Produto'].apply(lambda x: produtos_info[x]['Categoria'])
+# 5. Geração de Métricas Necessárias para o Projeto (Custo, Lucro, Quantidade)
+df_vendas['Quantidade'] = 1 
+N_TRANSACOES = len(df_vendas)
 
+# 6. Simulação de Custo e Categoria 
+# Simulação: Custo Unitário é 40% do Preço de Venda
+df_vendas['Custo_Unitario'] = df_vendas['Preco_Venda'] * 0.40
+
+# Usaremos o CASH_TYPE como 'Categoria' para as análises de agrupamento
+df_vendas['Categoria'] = df_vendas['CASH_TYPE']
+
+# 7. Cálculo Final das Métricas (Dados "Tratados" e prontos para uso)
 df_vendas['Total_Venda'] = df_vendas['Preco_Venda'] * df_vendas['Quantidade']
 df_vendas['Custo_Total'] = df_vendas['Custo_Unitario'] * df_vendas['Quantidade']
 df_vendas['Lucro_Bruto'] = df_vendas['Total_Venda'] - df_vendas['Custo_Total']
+
+# Lista de produtos únicos para o Menu 2
+lista_produtos = df_vendas['Produto'].unique().tolist()
+
+
+# =================================================================
+# 1. FUNÇÕES DE EXIBIÇÃO E CÁLCULO
+# O restante do código permanece inalterado, pois as funções
+# de análise e menu já estão corretas.
+# =================================================================
 
 def limpar_tela():
     print("\n" * 50) 
@@ -74,10 +81,10 @@ def analise_lucro_anual(df):
     
     lucro_total = df['Lucro_Bruto'].sum()
     
-    print("--- 1.1 Lucro Anual Total (2024) ---")
-    print(f"\nO Lucro Bruto Total acumulado no período é de: R$ {lucro_total:,.2f}")
+    print("--- 1.1 Lucro Anual Total ---")
+    print(f"\nO Lucro Bruto Total acumulado é de: R$ {lucro_total:,.2f}")
     
-    df_mensal = df.set_index('Data_Venda').resample('ME')['Lucro_Bruto'].sum()
+    df_mensal = df['Lucro_Bruto'].resample('ME').sum()
     
     plt.figure(figsize=(10, 6))
     df_mensal.plot(kind='line', marker='o', color='green')
@@ -93,7 +100,7 @@ def analise_lucro_mensal(df):
     limpar_tela()
     print("--- 1.2 Lucro Médio Mensal ---")
     
-    df_mensal = df.set_index('Data_Venda').resample('ME')['Lucro_Bruto'].sum()
+    df_mensal = df['Lucro_Bruto'].resample('ME').sum()
     lucro_medio_mensal = df_mensal.mean()
     
     print(f"\nLucro Bruto Médio Mensal: R$ {lucro_medio_mensal:,.2f}")
@@ -136,9 +143,10 @@ def previsao_de_estoque(df):
     limpar_tela()
     print("--- 1.4 Previsão de Estoque (Demanda do Próximo Mês) ---")
     
-    df['Dia_do_Ano'] = df['Data_Venda'].apply(lambda x: x.timetuple().tm_yday)
+    df['Dia_do_Ano'] = df.index.dayofyear
     
-    df_prod_b = df[df['Produto'] == 'Produto B (Alimento)']
+    produto_previsao = df['Produto'].value_counts().idxmax()
+    df_prod_b = df[df['Produto'] == produto_previsao]
     
     X = df_prod_b[['Dia_do_Ano']]
     y = df_prod_b['Quantidade']
@@ -146,18 +154,18 @@ def previsao_de_estoque(df):
     model = LinearRegression()
     model.fit(X, y)
     
-    dia_futuro = 380
+    dia_futuro = df.index.max().dayofyear + 30 
     X_futuro = pd.DataFrame({'Dia_do_Ano': [dia_futuro]})
     previsao_qty = model.predict(X_futuro)[0]
     
-    print(f"\nBaseado no histórico do 'Produto B (Alimento)':")
-    print(f"Previsão de Quantidade Média de Venda para o dia {dia_futuro} (início de 2025): {max(1, round(previsao_qty)):.0f} unidades.")
+    print(f"\nBaseado no histórico do '{produto_previsao}':")
+    print(f"Previsão de Quantidade Média de Venda para o dia {dia_futuro} (futuro): {max(1, round(previsao_qty)):.0f} unidades.")
     
-    df_mensal = df_prod_b.set_index('Data_Venda').resample('ME')['Quantidade'].sum()
+    df_mensal = df_prod_b['Quantidade'].resample('ME').sum()
     
     plt.figure(figsize=(10, 6))
     df_mensal.plot(kind='bar', color='orange')
-    plt.title('Vendas Mensais de Produto B vs. Projeção (Gráfico)')
+    plt.title(f'Vendas Mensais de {produto_previsao} vs. Projeção (Gráfico)')
     plt.xlabel('Mês')
     plt.ylabel('Quantidade Vendida')
     plt.axhline(previsao_qty * 30, color='red', linestyle='--', label=f'Projeção Mês Futuro ({previsao_qty * 30:.0f} unid.)')
@@ -172,7 +180,7 @@ def analise_produtos_mais_lucrativos(df):
 
     lucro_por_categoria = df.groupby('Categoria')['Lucro_Bruto'].sum().sort_values(ascending=False)
     
-    print("\nLucro Bruto Total por Categoria:")
+    print("\nLucro Bruto Total por Categoria (Tipo de Pagamento):")
     print(lucro_por_categoria.apply(lambda x: f"R$ {x:,.2f}").to_string())
     
     produto_mais_lucrativo = df.groupby('Produto')['Lucro_Bruto'].sum().idxmax()
@@ -180,12 +188,16 @@ def analise_produtos_mais_lucrativos(df):
     print(f"\nO item que mais gerou lucro total é: {produto_mais_lucrativo} (R$ {lucro_max:,.2f})")
 
     plt.figure(figsize=(8, 5))
-    lucro_por_categoria.plot(kind='pie', autopct='%1.1f%%', startangle=90, colors=['#ff9999','#66b3ff','#99ff99'])
-    plt.title('Distribuição Percentual do Lucro Bruto por Categoria (Gráfico)')
+    lucro_por_categoria.plot(kind='pie', autopct='%1.1f%%', startangle=90, colors=['#ff9999','#66b3ff','#99ff99', '#ffcc99'])
+    plt.title('Distribuição Percentual do Lucro Bruto por Categoria (Tipo de Pagamento)')
     plt.ylabel('')
     plt.tight_layout()
     exibir_grafico(plt, "Produtos Mais Lucrativos")
 
+
+# -----------------------------------------------------------------
+# 1.2 Funções para o Menu 2: Dados Inseridos (Interativo)
+# -----------------------------------------------------------------
 
 def inserir_previsao_demanda():
     limpar_tela()
@@ -317,7 +329,7 @@ def inserir_simulacao_saida_estoque():
         input("Pressione Enter para voltar.")
         return
         
-    dias_ativos = (df_produto['Data_Venda'].max() - df_produto['Data_Venda'].min()).days + 1
+    dias_ativos = (df_produto.index.max() - df_produto.index.min()).days + 1
     total_vendido = df_produto['Quantidade'].sum()
     mvd = total_vendido / dias_ativos if dias_ativos > 0 else total_vendido
 
@@ -334,6 +346,10 @@ def inserir_simulacao_saida_estoque():
 
     input("\nPressione Enter para voltar.")
 
+
+# =================================================================
+# 2. FLUXO PRINCIPAL (LOGIN E MENUS)
+# =================================================================
 
 def menu_dados_coletados():
     while True:
