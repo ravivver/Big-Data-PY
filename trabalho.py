@@ -5,62 +5,37 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression 
 import time 
 
-# =================================================================
-# 0. CARREGAMENTO E TRATAMENTO DOS DADOS REAIS (DADOS COLETADOS)
-# =================================================================
-
-# 1. Carregamento do CSV
 try:
-    # O arquivo está na subpasta 'data/'.
     df_vendas = pd.read_csv('data/database.csv')
 except FileNotFoundError:
-    print("ERRO: Arquivo 'database.csv' não encontrado. Certifique-se de que está na pasta 'data/' dentro do diretório do script.")
+    print("ERRO: Arquivo 'dados.csv' não encontrado. Certifique-se de que está na pasta 'data/' dentro do diretório do script.")
     exit()
 
-# === PASSO CRÍTICO: LIMPEZA DE COLUNAS ===
-# Remove espaços em branco (leading/trailing) e padroniza para MAIÚSCULAS
 df_vendas.columns = df_vendas.columns.str.strip().str.upper()
-# ==========================================
 
-# 2. Tratamento de Datas (Garante o tipo datetime)
-# Convertemos a coluna original 'DATETIME' para o tipo datetime.
 df_vendas['DATETIME'] = pd.to_datetime(df_vendas['DATETIME'])
 
-# 3. Renomear colunas para o padrão do projeto
 df_vendas.rename(columns={
     'DATETIME': 'Data_Venda',
     'MONEY': 'Preco_Venda',
     'COFFEE_NAME': 'Produto'
 }, inplace=True)
 
-# 4. Garante que a data seja o índice para futuras análises (resample)
 df_vendas.set_index('Data_Venda', inplace=True)
 
-# 5. Geração de Métricas Necessárias para o Projeto (Custo, Lucro, Quantidade)
 df_vendas['Quantidade'] = 1 
 N_TRANSACOES = len(df_vendas)
 
-# 6. Simulação de Custo e Categoria 
-# Simulação: Custo Unitário é 40% do Preço de Venda
 df_vendas['Custo_Unitario'] = df_vendas['Preco_Venda'] * 0.40
 
-# Usaremos o CASH_TYPE como 'Categoria' para as análises de agrupamento
 df_vendas['Categoria'] = df_vendas['CASH_TYPE']
 
-# 7. Cálculo Final das Métricas (Dados "Tratados" e prontos para uso)
 df_vendas['Total_Venda'] = df_vendas['Preco_Venda'] * df_vendas['Quantidade']
 df_vendas['Custo_Total'] = df_vendas['Custo_Unitario'] * df_vendas['Quantidade']
 df_vendas['Lucro_Bruto'] = df_vendas['Total_Venda'] - df_vendas['Custo_Total']
 
-# Lista de produtos únicos para o Menu 2
 lista_produtos = df_vendas['Produto'].unique().tolist()
 
-
-# =================================================================
-# 1. FUNÇÕES DE EXIBIÇÃO E CÁLCULO
-# O restante do código permanece inalterado, pois as funções
-# de análise e menu já estão corretas.
-# =================================================================
 
 def limpar_tela():
     print("\n" * 50) 
@@ -193,11 +168,6 @@ def analise_produtos_mais_lucrativos(df):
     plt.ylabel('')
     plt.tight_layout()
     exibir_grafico(plt, "Produtos Mais Lucrativos")
-
-
-# -----------------------------------------------------------------
-# 1.2 Funções para o Menu 2: Dados Inseridos (Interativo)
-# -----------------------------------------------------------------
 
 def inserir_previsao_demanda():
     limpar_tela()
@@ -346,10 +316,6 @@ def inserir_simulacao_saida_estoque():
 
     input("\nPressione Enter para voltar.")
 
-
-# =================================================================
-# 2. FLUXO PRINCIPAL (LOGIN E MENUS)
-# =================================================================
 
 def menu_dados_coletados():
     while True:
