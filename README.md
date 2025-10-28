@@ -17,9 +17,9 @@ O projeto utiliza bibliotecas específicas. instale todas elas usando o arquivo 
     ```
 4. **Inicie com**:
 
-```bash
-python trabalho.py
-```
+    ```bash
+    python trabalho.py
+    ```
 
 Login: Admin
 Password: Admin123
