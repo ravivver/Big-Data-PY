@@ -4,8 +4,6 @@ Este projeto simula um sistema básico de gestão de estoque, demanda e lucro ut
 
 ---
 
-### 1 Dependências
-
 O projeto utiliza bibliotecas específicas. instale todas elas usando o arquivo `requirements.txt`.
 
 1.  **Abra o PowerShell/VS Code Terminal**
@@ -17,18 +15,11 @@ O projeto utiliza bibliotecas específicas. instale todas elas usando o arquivo 
     ```bash
     python -m pip install -r requirements.txt
     ```
-
----
-
-## 2. Utilizando
-
-Inicie com:
+4. **Inicie com**:
 
 ```bash
 python trabalho.py
 ```
-
-Na parte de Login utilize o login/senha listado a baixo, utilize 1/2/3 para selecionar as opções, 1 = Dados Pré Setados, 2 = Dados Inseridos, 3 = Sair
 
 Login: Admin
 Password: Admin123
