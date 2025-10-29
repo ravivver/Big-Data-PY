@@ -310,7 +310,7 @@ def inserir_simulacao_saida_estoque():
         dias_para_fim = estoque_atual / mvd
         print(f"Com base na MVD, o estoque atual de {estoque_atual} unidades durará: **{dias_para_fim:.1f} dias**.")
         if dias_para_fim < 30:
-             print("\n⚠️ AVISO: O estoque pode durar menos de um mês. Considere uma nova compra!")
+             print("\n AVISO: O estoque pode durar menos de um mês. Considere uma nova compra!")
     else:
         print("MVD zero. O produto pode não ter sido vendido ou os dados são insuficientes.")
 
