@@ -4,11 +4,14 @@ from datetime import timedelta, date
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression 
 import time 
+from wordcloud import WordCloud
+
+nome_arquivo = 'database.csv'
 
 try:
-    df_vendas = pd.read_csv('data/database.csv')
+    df_vendas = pd.read_csv(nome_arquivo)
 except FileNotFoundError:
-    print("ERRO: Arquivo 'dados.csv' não encontrado. Certifique-se de que está na pasta 'data/' dentro do diretório do script.")
+    print(f"ERRO: Arquivo {nome_arquivo} não encontrado. Certifique-se de que está na pasta 'data/' dentro do diretório do script.")
     exit()
 
 df_vendas.columns = df_vendas.columns.str.strip().str.upper()
@@ -316,6 +319,37 @@ def inserir_simulacao_saida_estoque():
 
     input("\nPressione Enter para voltar.")
 
+def analise_nuvem_lucro(df):
+    limpar_tela()
+    print("--- 1.7 Nuvem de Palavras (Produtos por Lucro Bruto) ---")
+    
+    df_lucro = df.groupby('Produto')['Lucro_Bruto'].sum()
+    
+    df_lucro = df_lucro[df_lucro > 0]
+    
+    df_lucro.index = df_lucro.index.str.split(' \(').str[0]
+    
+    frequencias_dict = df_lucro.to_dict()
+
+    if not frequencias_dict:
+        print("\nNenhum dado de produto com lucro positivo para gerar a nuvem de palavras.")
+        input("\nPressione Enter para voltar.")
+        return
+
+    print("\n[Gerando nuvem de palavras com base no LUCRO BRUTO total...]")
+    
+    wc = WordCloud(width=800, height=400, 
+                   background_color='white', 
+                   colormap='plasma',  
+                   min_font_size=10).generate_from_frequencies(frequencias_dict)
+
+    plt.figure(figsize=(10, 7))
+    plt.imshow(wc, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Nuvem de Palavras por Lucro Bruto Total')
+    plt.tight_layout(pad=0)
+    
+    exibir_grafico(plt, "Nuvem de Palavras (Lucro)")
 
 def menu_dados_coletados():
     while True:
@@ -328,10 +362,11 @@ def menu_dados_coletados():
         print("3. Lucro sobre Produto (Margem Média)")
         print("4. Previsão de Estoque (Simulação Scikit-learn)")
         print("5. Produtos Mais Lucrativos (Ranking e % de Categoria)")
-        print("6. Voltar ao Menu Principal")
+        print("6. Nuvem de Palavras (Produtos por Lucro)")
+        print("7. Voltar ao Menu Principal")
         print("-" * 40)
         
-        escolha = input("Selecione a opção desejável (1-6): ")
+        escolha = input("Selecione a opção desejável (1-7): ")
         
         if escolha == '1':
             analise_lucro_anual(df_vendas)
@@ -344,6 +379,8 @@ def menu_dados_coletados():
         elif escolha == '5':
             analise_produtos_mais_lucrativos(df_vendas)
         elif escolha == '6':
+            analise_nuvem_lucro(df_vendas)
+        elif escolha == '7':
             break
         else:
             print("\nOpção inválida. Tente novamente.")
